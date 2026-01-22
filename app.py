@@ -1,7 +1,6 @@
-# app.py
 import streamlit as st
 import numpy as np
-import pickle
+import joblib
 
 # ---------------- PAGE CONFIG ----------------
 st.set_page_config(
@@ -11,17 +10,10 @@ st.set_page_config(
 )
 
 # ---------------- LOAD MODEL & PREPROCESSORS ----------------
-with open("model.pkl", "rb") as f:
-    model = pickle.load(f)
-
-with open("scaler.pkl", "rb") as f:
-    scaler = pickle.load(f)
-
-with open("sex_encoder.pkl", "rb") as f:
-    sex_encoder = pickle.load(f)
-
-with open("embarked_encoder.pkl", "rb") as f:
-    embarked_encoder = pickle.load(f)
+model = joblib.load("model.joblib")
+scaler = joblib.load("scaler.joblib")
+sex_encoder = joblib.load("sex_encoder.joblib")
+embarked_encoder = joblib.load("embarked_encoder.joblib")
 
 # ---------------- CUSTOM STYLING ----------------
 st.markdown(
@@ -48,7 +40,8 @@ st.markdown(
 
 # ---------------- HEADER ----------------
 st.title("🚢 Titanic Survival Prediction")
-st.caption("An educational ML project – not for real-life use")
+st.caption("An educational machine learning project (not a real-life safety tool)")
+
 st.divider()
 
 # ---------------- INPUT SECTION ----------------
@@ -69,23 +62,20 @@ st.divider()
 
 # ---------------- PREDICTION ----------------
 if st.button("🔍 Predict Survival"):
-    # Encode categorical
     sex_encoded = sex_encoder.transform([sex])[0]
     embarked_encoded = embarked_encoder.transform([embarked])[0]
 
-    # Prepare and scale input
     input_data = np.array([[pclass, sex_encoded, age, fare, embarked_encoded]])
     input_scaled = scaler.transform(input_data)
 
-    # Make prediction
     prediction = model.predict(input_scaled)[0]
     probability = model.predict_proba(input_scaled)[0][prediction] * 100
 
-    # Display result
     if prediction == 1:
-        st.success(f"🎉 Survived\nConfidence: {probability:.2f}%")
+        st.success(f"🎉 **Survived**\n\nConfidence: {probability:.2f}%")
     else:
-        st.error(f"❌ Did Not Survive\nConfidence: {probability:.2f}%")
+        st.error(f"❌ **Did Not Survive**\n\nConfidence: {probability:.2f}%")
 
+# ---------------- FOOTER ----------------
 st.markdown("---")
 st.caption("Made with 💙 using Streamlit & Scikit-learn")
