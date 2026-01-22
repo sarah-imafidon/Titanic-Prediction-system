@@ -1,60 +1,59 @@
+# model_development.py
 import pandas as pd
 import numpy as np
-import joblib
-
 from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import LabelEncoder, StandardScaler
+from sklearn.preprocessing import StandardScaler, LabelEncoder
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import classification_report
+import pickle
 
-# 1. Load dataset
+# ---------------- LOAD DATA ----------------
 df = pd.read_csv("titanic.csv")
 
-# 2. Select required columns
+# ---------------- SELECT FEATURES ----------------
+# We'll choose 5 input features
 features = ["Pclass", "Sex", "Age", "Fare", "Embarked"]
 target = "Survived"
 
-df = df[features + [target]]
-
-# 3. Handle missing values
-df["Age"].fillna(df["Age"].median(), inplace=True)
-df["Embarked"].fillna(df["Embarked"].mode()[0], inplace=True)
-
-# 4. Encode categorical variables
-sex_encoder = LabelEncoder()
-embarked_encoder = LabelEncoder()
-
-df["Sex"] = sex_encoder.fit_transform(df["Sex"])
-df["Embarked"] = embarked_encoder.fit_transform(df["Embarked"])
-
-# 5. Split data
 X = df[features]
 y = df[target]
 
-X_train, X_test, y_train, y_test = train_test_split(
-    X, y, test_size=0.2, random_state=42
-)
+# ---------------- HANDLE MISSING VALUES ----------------
+X["Age"].fillna(X["Age"].median(), inplace=True)
+X["Fare"].fillna(X["Fare"].median(), inplace=True)
+X["Embarked"].fillna("S", inplace=True)  # most common
 
-# 6. Feature scaling
+# ---------------- ENCODE CATEGORICALS ----------------
+sex_encoder = LabelEncoder()
+X["Sex"] = sex_encoder.fit_transform(X["Sex"])
+
+embarked_encoder = LabelEncoder()
+X["Embarked"] = embarked_encoder.fit_transform(X["Embarked"])
+
+# ---------------- FEATURE SCALING ----------------
 scaler = StandardScaler()
-X_train = scaler.fit_transform(X_train)
-X_test = scaler.transform(X_test)
+X_scaled = scaler.fit_transform(X)
 
-# 7. Train model
+# ---------------- TRAIN MODEL ----------------
+X_train, X_test, y_train, y_test = train_test_split(X_scaled, y, test_size=0.2, random_state=42)
 model = LogisticRegression()
 model.fit(X_train, y_train)
 
-# 8. Evaluate model
+# ---------------- EVALUATE ----------------
 y_pred = model.predict(X_test)
-print(classification_report(y_test, y_pred))
+print("Classification Report:\n", classification_report(y_test, y_pred))
 
-# 9. Save model & preprocessors
-joblib.dump(model, "model.joblib")
-joblib.dump(scaler, "scaler.joblib")
-joblib.dump(sex_encoder, "sex_encoder.joblib")
-joblib.dump(embarked_encoder, "embarked_encoder.joblib")
+# ---------------- SAVE MODEL & PREPROCESSORS ----------------
+with open("model.pkl", "wb") as f:
+    pickle.dump(model, f)
 
-# 10. Reload test (proof)
-loaded_model = joblib.load("model.joblib")
-test_prediction = loaded_model.predict(X_test[:1])
-print("Test reload prediction:", test_prediction)
+with open("scaler.pkl", "wb") as f:
+    pickle.dump(scaler, f)
+
+with open("sex_encoder.pkl", "wb") as f:
+    pickle.dump(sex_encoder, f)
+
+with open("embarked_encoder.pkl", "wb") as f:
+    pickle.dump(embarked_encoder, f)
+
+print("✅ Model and preprocessors saved successfully with pickle.")
